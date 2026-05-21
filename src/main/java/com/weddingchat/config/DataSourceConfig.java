@@ -16,17 +16,18 @@ public class DataSourceConfig {
     @Bean
     public DataSource dataSource(Environment environment) {
         String jdbcUrl = DatabaseUrlSupport.resolveJdbcUrl(environment);
+        String poolUrl = DatabaseUrlSupport.jdbcUrlForPool(jdbcUrl);
         String username = DatabaseUrlSupport.resolveUsername(environment, jdbcUrl);
         String password = DatabaseUrlSupport.resolvePassword(environment, jdbcUrl);
 
         log.info(
                 "Connecting to PostgreSQL at {} (user={})",
-                DatabaseUrlSupport.describeConnection(jdbcUrl),
+                DatabaseUrlSupport.describeConnection(poolUrl),
                 username
         );
 
         HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setJdbcUrl(jdbcUrl);
+        dataSource.setJdbcUrl(poolUrl);
         dataSource.setUsername(username);
         dataSource.setPassword(password);
         return dataSource;

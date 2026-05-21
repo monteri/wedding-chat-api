@@ -50,6 +50,19 @@ class DatabaseUrlSupportTest {
     }
 
     @Test
+    void fixesMissingSlashesAfterScheme() {
+        String jdbcUrl = DatabaseUrlSupport.toJdbcUrl(
+                "postgresql:postgres:secret@postgres.railway.internal:5432/railway"
+        );
+
+        assertThat(jdbcUrl).isEqualTo("jdbc:postgresql://postgres:secret@postgres.railway.internal:5432/railway");
+        assertThat(DatabaseUrlSupport.jdbcUrlForPool(jdbcUrl))
+                .isEqualTo("jdbc:postgresql://postgres.railway.internal:5432/railway");
+        assertThat(DatabaseUrlSupport.describeConnection(DatabaseUrlSupport.jdbcUrlForPool(jdbcUrl)))
+                .isEqualTo("postgres.railway.internal:5432/railway");
+    }
+
+    @Test
     void prefersUrlCredentialsOverRailwayDbUsername() {
         MockEnvironment env = new MockEnvironment()
                 .withProperty("DB_URL", "postgresql://postgres:secret@postgres.railway.internal:5432/railway")

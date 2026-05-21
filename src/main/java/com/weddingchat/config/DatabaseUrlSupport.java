@@ -80,17 +80,60 @@ public final class DatabaseUrlSupport {
         return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
     }
 
+    /** JDBC URL for Hikari: host/path only, credentials passed separately. */
+    public static String jdbcUrlForPool(String jdbcUrl) {
+        String normalized = ensurePostgresqlAuthoritySlashes(jdbcUrl);
+        try {
+            URI uri = URI.create(normalized.substring("jdbc:".length()));
+            if (uri.getHost() == null) {
+                return normalized;
+            }
+            StringBuilder poolUrl = new StringBuilder("jdbc:postgresql://");
+            poolUrl.append(uri.getHost());
+            if (uri.getPort() > 0) {
+                poolUrl.append(":").append(uri.getPort());
+            }
+            if (uri.getPath() != null) {
+                poolUrl.append(uri.getPath());
+            }
+            if (uri.getQuery() != null) {
+                poolUrl.append("?").append(uri.getQuery());
+            }
+            return poolUrl.toString();
+        } catch (IllegalArgumentException ex) {
+            return normalized;
+        }
+    }
+
     public static String toJdbcUrl(String url) {
         String trimmed = url.trim();
+        String jdbc;
         if (trimmed.startsWith("jdbc:")) {
-            return trimmed;
+            jdbc = trimmed;
+        } else if (trimmed.startsWith("postgres://") || trimmed.startsWith("postgresql://")) {
+            jdbc = "jdbc:" + trimmed;
+        } else if (trimmed.startsWith("postgres:") || trimmed.startsWith("postgresql:")) {
+            int schemeEnd = trimmed.indexOf(':');
+            jdbc = "jdbc:" + trimmed.substring(0, schemeEnd + 1) + "//" + trimmed.substring(schemeEnd + 1);
+        } else {
+            throw new IllegalArgumentException(
+                    "Database URL must start with jdbc:, postgresql://, or postgres:// (got: " + trimmed + ")"
+            );
         }
-        if (trimmed.startsWith("postgres://") || trimmed.startsWith("postgresql://")) {
-            return "jdbc:" + trimmed;
+        return ensurePostgresqlAuthoritySlashes(jdbc);
+    }
+
+    private static String ensurePostgresqlAuthoritySlashes(String jdbcUrl) {
+        if (jdbcUrl.startsWith("jdbc:postgresql://") || jdbcUrl.startsWith("jdbc:postgres://")) {
+            return jdbcUrl;
         }
-        throw new IllegalArgumentException(
-                "Database URL must start with jdbc:, postgresql://, or postgres:// (got: " + trimmed + ")"
-        );
+        if (jdbcUrl.startsWith("jdbc:postgresql:")) {
+            return "jdbc:postgresql://" + jdbcUrl.substring("jdbc:postgresql:".length());
+        }
+        if (jdbcUrl.startsWith("jdbc:postgres:")) {
+            return "jdbc:postgres://" + jdbcUrl.substring("jdbc:postgres:".length());
+        }
+        return jdbcUrl;
     }
 
     private static Optional<Credentials> credentialsFromUrl(String jdbcUrl) {

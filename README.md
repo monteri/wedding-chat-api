@@ -233,6 +233,8 @@ docker run --rm -p 8080:8080 \
 4. In app service variables, set the database connection (either form works):
    - **Option A (recommended):** Add variable `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (Railway variable reference). Do **not** set `DB_URL` to an empty value.
    - **Option B:** Set `DB_URL` to a JDBC URL, e.g. `jdbc:postgresql://HOST:PORT/railway?sslmode=require`
+
+   Use the full URL from Railway (with `postgresql://` and `//`). A value like `postgresql:postgres:pass@host:5432/railway` without `//` is fixed automatically, but copying the exact **Connect** URL from Railway is safest.
    - `DB_USERNAME` / `DB_PASSWORD` — only for local dev or JDBC URLs **without** embedded credentials. If `DB_URL` / `DATABASE_URL` already contains `postgres:password@…`, **do not** set `DB_USERNAME` to the database name (`railway`); Railway often injects misleading values.
 
    Railway provides `postgresql://…` URLs; the app converts them to `jdbc:postgresql://…` when creating the datasource. On startup you should see a log line like `Connecting to PostgreSQL at postgres.railway.internal:5432/railway` — if it shows `localhost:5433`, `DB_URL` is not reaching the container (wrong service, empty variable, or old deploy).

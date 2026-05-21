@@ -38,7 +38,8 @@ Spring Boot loads `.env` automatically on startup (`spring.config.import`). `.en
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | `PORT` | No | `8080` | HTTP server port |
-| `DB_URL` | No | `jdbc:postgresql://localhost:5433/wedding_chat?sslmode=disable` | PostgreSQL JDBC URL (host port from `docker-compose.yml`) |
+| `DB_URL` | No | (see `DATABASE_URL`) | PostgreSQL URL (`jdbc:postgresql://…` or `postgresql://…`) |
+| `DATABASE_URL` | No | local default in `application.yml` | Railway/Heroku-style URL; used when `DB_URL` is unset |
 | `DB_USERNAME` | No | `wedding_chat` | PostgreSQL user |
 | `DB_PASSWORD` | No | `wedding_chat` | PostgreSQL password |
 | `FRONTEND_ORIGIN` | No | `http://localhost:5173` | Comma-separated CORS + WebSocket allowed origins |
@@ -229,10 +230,10 @@ docker run --rm -p 8080:8080 \
 1. Push repository to GitHub.
 2. Create a new Railway project from the GitHub repo.
 3. Add a PostgreSQL service in Railway.
-4. In app service variables, set:
-   - `DB_URL` (Railway Postgres connection URL)
-   - `DB_USERNAME`
-   - `DB_PASSWORD`
+4. In app service variables, set the database connection (either form works):
+   - **Option A:** Reference Railway Postgres `DATABASE_URL` on the app service (e.g. `${{Postgres.DATABASE_URL}}`). The app accepts `postgresql://…` URLs and converts them to JDBC automatically.
+   - **Option B:** Set `DB_URL` to a JDBC URL, e.g. `jdbc:postgresql://HOST:PORT/railway?sslmode=require`
+   - `DB_USERNAME` / `DB_PASSWORD` — optional if credentials are already in the URL; otherwise set them explicitly
    - `FRONTEND_ORIGIN`
    - `ADMIN_PASSWORD`
    - optional rate limit values

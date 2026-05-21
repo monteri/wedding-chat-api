@@ -26,7 +26,7 @@ final class DatabaseUrlSupport {
 
         String jdbcUrl = toJdbcUrl(rawUrl);
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("spring.datasource.url", jdbcUrl);
+        properties.put("spring.datasource.url", ensureSslParams(jdbcUrl));
 
         if (isBlank(environment.getProperty("DB_USERNAME"))) {
             credentialsFromUrl(jdbcUrl).ifPresent(credentials -> {
@@ -37,6 +37,16 @@ final class DatabaseUrlSupport {
 
         environment.getPropertySources().remove(PROPERTY_SOURCE);
         environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE, properties));
+    }
+
+    private static String ensureSslParams(String jdbcUrl) {
+        if (jdbcUrl.contains("localhost") || jdbcUrl.contains("127.0.0.1")) {
+            return jdbcUrl;
+        }
+        if (jdbcUrl.contains("sslmode=")) {
+            return jdbcUrl;
+        }
+        return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
     }
 
     static String toJdbcUrl(String url) {

@@ -231,9 +231,11 @@ docker run --rm -p 8080:8080 \
 2. Create a new Railway project from the GitHub repo.
 3. Add a PostgreSQL service in Railway.
 4. In app service variables, set the database connection (either form works):
-   - **Option A:** Reference Railway Postgres `DATABASE_URL` on the app service (e.g. `${{Postgres.DATABASE_URL}}`). The app accepts `postgresql://…` URLs and converts them to JDBC automatically.
+   - **Option A (recommended):** Add variable `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (Railway variable reference). Do **not** set `DB_URL` to an empty value.
    - **Option B:** Set `DB_URL` to a JDBC URL, e.g. `jdbc:postgresql://HOST:PORT/railway?sslmode=require`
    - `DB_USERNAME` / `DB_PASSWORD` — optional if credentials are already in the URL; otherwise set them explicitly
+
+   Railway provides `postgresql://…` URLs; the app converts them to `jdbc:postgresql://…` on startup. Redeploy after pulling the latest backend image.
    - `FRONTEND_ORIGIN`
    - `ADMIN_PASSWORD`
    - optional rate limit values

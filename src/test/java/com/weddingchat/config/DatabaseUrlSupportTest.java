@@ -25,4 +25,10 @@ class DatabaseUrlSupportTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("jdbc:");
     }
+
+    @Test
+    void appliesAfterConfigDataOrder() {
+        assertThat(new DatabaseEnvironmentPostProcessor().getOrder())
+                .isEqualTo(org.springframework.core.Ordered.LOWEST_PRECEDENCE);
+    }
 }

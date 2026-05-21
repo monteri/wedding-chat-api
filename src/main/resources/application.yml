@@ -1,0 +1,31 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: wedding-chat-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/wedding_chat?sslmode=disable}
+    username: ${DB_USERNAME:wedding_chat}
+    password: ${DB_PASSWORD:wedding_chat}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${PORT:8080}
+
+app:
+  frontend-origins: ${FRONTEND_ORIGIN:http://localhost:5173}
+  admin-password: ${ADMIN_PASSWORD:change-me}
+  rate-limit:
+    message-per-minute: ${MESSAGE_RATE_LIMIT_PER_MINUTE:12}
+    floating-per-minute: ${FLOATING_REACTION_RATE_LIMIT_PER_MINUTE:30}

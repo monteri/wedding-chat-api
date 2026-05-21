@@ -7,7 +7,7 @@ Production-ready Java 21 / Spring Boot 3 backend for real-time wedding chat.
 - Java 21
 - Spring Boot 3.x
 - Gradle Kotlin DSL
-- PostgreSQL
+- PostgreSQL 18 (local via Docker Compose)
 - Flyway migrations
 - Spring Web + Bean Validation
 - Spring WebSocket with STOMP
@@ -175,11 +175,22 @@ VALUES (
    cp .env.example .env
    ```
 
-2. Start PostgreSQL:
+2. Start PostgreSQL 18 (Docker):
 
    ```bash
    docker compose up -d
    ```
+
+   Local Compose uses `postgres:18-alpine` on host port **5433** (mapped to container `5432`). Data is stored under `/var/lib/postgresql` (required for Postgres 18+ images).
+
+   If the container loops with *"PostgreSQL data in /var/lib/postgresql/data (unused mount/volume)"*, you have an old volume from Postgres 16/17. Reset it (dev only — deletes all local DB data):
+
+   ```bash
+   docker compose down -v
+   docker compose up -d
+   ```
+
+   Then re-run Flyway migrations and recreate weddings (e.g. `POST /api/admin/weddings`).
 
 3. Run the app:
 

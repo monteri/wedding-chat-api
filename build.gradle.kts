@@ -4,6 +4,9 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
+// Spring Boot 3.3.x ships Flyway 10.10, which does not support PostgreSQL 17/18
+extra["flyway.version"] = "11.8.0"
+
 group = "com.weddingchat"
 version = "0.0.1-SNAPSHOT"
 description = "wedding-chat-backend"

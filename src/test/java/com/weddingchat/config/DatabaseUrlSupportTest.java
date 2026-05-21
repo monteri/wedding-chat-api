@@ -2,8 +2,8 @@ package com.weddingchat.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 
 class DatabaseUrlSupportTest {
 
@@ -20,15 +20,39 @@ class DatabaseUrlSupportTest {
     }
 
     @Test
+    void prefersDbUrlOverDatabaseUrl() {
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("DB_URL", "postgresql://postgres:secret@postgres.railway.internal:5432/railway")
+                .withProperty("DATABASE_URL", "postgresql://ignored:ignored@ignored:5432/ignored");
+
+        String jdbcUrl = DatabaseUrlSupport.resolveJdbcUrl(env);
+
+        assertThat(jdbcUrl).isEqualTo("jdbc:postgresql://postgres:secret@postgres.railway.internal:5432/railway");
+        assertThat(DatabaseUrlSupport.describeConnection(jdbcUrl))
+                .isEqualTo("postgres.railway.internal:5432/railway");
+    }
+
+    @Test
+    void usesLocalDefaultWhenNoEnvUrl() {
+        MockEnvironment env = new MockEnvironment();
+
+        assertThat(DatabaseUrlSupport.resolveJdbcUrl(env)).contains("localhost:5433");
+    }
+
+    @Test
+    void extractsCredentialsFromUrlWhenUsernameNotSet() {
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("DB_URL", "postgresql://postgres:secret@postgres.railway.internal:5432/railway");
+        String jdbcUrl = DatabaseUrlSupport.resolveJdbcUrl(env);
+
+        assertThat(DatabaseUrlSupport.resolveUsername(env, jdbcUrl)).isEqualTo("postgres");
+        assertThat(DatabaseUrlSupport.resolvePassword(env, jdbcUrl)).isEqualTo("secret");
+    }
+
+    @Test
     void rejectsUnsupportedScheme() {
         assertThatThrownBy(() -> DatabaseUrlSupport.toJdbcUrl("mysql://localhost/db"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("jdbc:");
-    }
-
-    @Test
-    void appliesAfterConfigDataOrder() {
-        assertThat(new DatabaseEnvironmentPostProcessor().getOrder())
-                .isEqualTo(org.springframework.core.Ordered.LOWEST_PRECEDENCE);
     }
 }

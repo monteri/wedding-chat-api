@@ -4,7 +4,7 @@ spring:
   application:
     name: wedding-chat-backend
   datasource:
-    # Local default; production overrides via DB_URL or DATABASE_URL (see DatabaseEnvironmentPostProcessor)
+    # Local fallback when DB_URL / DATABASE_URL are unset (production uses DataSourceConfig)
     url: jdbc:postgresql://localhost:5433/wedding_chat?sslmode=disable
     username: ${DB_USERNAME:wedding_chat}
     password: ${DB_PASSWORD:wedding_chat}

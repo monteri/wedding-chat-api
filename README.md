@@ -235,7 +235,9 @@ docker run --rm -p 8080:8080 \
    - **Option B:** Set `DB_URL` to a JDBC URL, e.g. `jdbc:postgresql://HOST:PORT/railway?sslmode=require`
    - `DB_USERNAME` / `DB_PASSWORD` — optional if credentials are already in the URL; otherwise set them explicitly
 
-   Railway provides `postgresql://…` URLs; the app converts them to `jdbc:postgresql://…` on startup. Redeploy after pulling the latest backend image.
+   Railway provides `postgresql://…` URLs; the app converts them to `jdbc:postgresql://…` when creating the datasource. On startup you should see a log line like `Connecting to PostgreSQL at postgres.railway.internal:5432/railway` — if it shows `localhost:5433`, `DB_URL` is not reaching the container (wrong service, empty variable, or old deploy).
+
+   Redeploy after pulling the latest backend image.
    - `FRONTEND_ORIGIN`
    - `ADMIN_PASSWORD`
    - optional rate limit values

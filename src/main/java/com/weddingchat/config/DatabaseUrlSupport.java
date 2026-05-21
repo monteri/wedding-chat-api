@@ -3,44 +3,65 @@ package com.weddingchat.config;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
+import java.util.Optional;
+import org.springframework.core.env.Environment;
 
-final class DatabaseUrlSupport {
+public final class DatabaseUrlSupport {
 
-    private static final String PROPERTY_SOURCE = "normalizedDatabaseUrl";
+    private static final String LOCAL_JDBC_URL =
+            "jdbc:postgresql://localhost:5433/wedding_chat?sslmode=disable";
 
     private DatabaseUrlSupport() {
     }
 
-    static void apply(ConfigurableEnvironment environment) {
+    public static String resolveJdbcUrl(Environment environment) {
         String rawUrl = firstNonBlank(
                 environment.getProperty("DB_URL"),
                 environment.getProperty("DATABASE_URL")
         );
-        if (rawUrl == null) {
-            return;
+        if (rawUrl != null) {
+            return ensureSslParams(toJdbcUrl(rawUrl));
         }
+        return environment.getProperty("spring.datasource.url", LOCAL_JDBC_URL);
+    }
 
-        String jdbcUrl = toJdbcUrl(rawUrl);
-        Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("spring.datasource.url", ensureSslParams(jdbcUrl));
-
-        if (isBlank(environment.getProperty("DB_USERNAME"))) {
-            credentialsFromUrl(jdbcUrl).ifPresent(credentials -> {
-                properties.put("spring.datasource.username", credentials.username());
-                properties.put("spring.datasource.password", credentials.password());
-            });
+    public static String resolveUsername(Environment environment, String jdbcUrl) {
+        String configured = environment.getProperty("DB_USERNAME");
+        if (!isBlank(configured)) {
+            return configured.trim();
         }
+        return credentialsFromUrl(jdbcUrl)
+                .map(Credentials::username)
+                .orElseGet(() -> environment.getProperty("spring.datasource.username", "wedding_chat"));
+    }
 
-        environment.getPropertySources().remove(PROPERTY_SOURCE);
-        environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE, properties));
+    public static String resolvePassword(Environment environment, String jdbcUrl) {
+        String configured = environment.getProperty("DB_PASSWORD");
+        if (!isBlank(configured)) {
+            return configured;
+        }
+        return credentialsFromUrl(jdbcUrl)
+                .map(Credentials::password)
+                .orElseGet(() -> environment.getProperty("spring.datasource.password", "wedding_chat"));
+    }
+
+    /** Safe for logs: host and database only. */
+    public static String describeConnection(String jdbcUrl) {
+        try {
+            URI uri = URI.create(jdbcUrl.substring("jdbc:".length()));
+            String host = uri.getHost() == null ? "unknown" : uri.getHost();
+            int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+            String path = uri.getPath() == null ? "" : uri.getPath();
+            return host + ":" + port + path;
+        } catch (RuntimeException ex) {
+            return "(invalid jdbc url)";
+        }
     }
 
     private static String ensureSslParams(String jdbcUrl) {
-        if (jdbcUrl.contains("localhost") || jdbcUrl.contains("127.0.0.1")) {
+        if (jdbcUrl.contains("localhost")
+                || jdbcUrl.contains("127.0.0.1")
+                || jdbcUrl.contains(".railway.internal")) {
             return jdbcUrl;
         }
         if (jdbcUrl.contains("sslmode=")) {
@@ -49,7 +70,7 @@ final class DatabaseUrlSupport {
         return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
     }
 
-    static String toJdbcUrl(String url) {
+    public static String toJdbcUrl(String url) {
         String trimmed = url.trim();
         if (trimmed.startsWith("jdbc:")) {
             return trimmed;
@@ -62,19 +83,19 @@ final class DatabaseUrlSupport {
         );
     }
 
-    private static java.util.Optional<Credentials> credentialsFromUrl(String jdbcUrl) {
+    private static Optional<Credentials> credentialsFromUrl(String jdbcUrl) {
         try {
             URI uri = URI.create(jdbcUrl.substring("jdbc:".length()));
             String userInfo = uri.getUserInfo();
             if (userInfo == null || userInfo.isBlank()) {
-                return java.util.Optional.empty();
+                return Optional.empty();
             }
             String[] parts = userInfo.split(":", 2);
             String username = decode(parts[0]);
             String password = parts.length > 1 ? decode(parts[1]) : "";
-            return java.util.Optional.of(new Credentials(username, password));
+            return Optional.of(new Credentials(username, password));
         } catch (IllegalArgumentException ex) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
     }
 

@@ -50,6 +50,18 @@ class DatabaseUrlSupportTest {
     }
 
     @Test
+    void prefersUrlCredentialsOverRailwayDbUsername() {
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("DB_URL", "postgresql://postgres:secret@postgres.railway.internal:5432/railway")
+                .withProperty("DB_USERNAME", "railway")
+                .withProperty("DB_PASSWORD", "wrong-password");
+        String jdbcUrl = DatabaseUrlSupport.resolveJdbcUrl(env);
+
+        assertThat(DatabaseUrlSupport.resolveUsername(env, jdbcUrl)).isEqualTo("postgres");
+        assertThat(DatabaseUrlSupport.resolvePassword(env, jdbcUrl)).isEqualTo("secret");
+    }
+
+    @Test
     void rejectsUnsupportedScheme() {
         assertThatThrownBy(() -> DatabaseUrlSupport.toJdbcUrl("mysql://localhost/db"))
                 .isInstanceOf(IllegalArgumentException.class)

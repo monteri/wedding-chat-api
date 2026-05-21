@@ -26,21 +26,31 @@ public final class DatabaseUrlSupport {
     }
 
     public static String resolveUsername(Environment environment, String jdbcUrl) {
+        Optional<Credentials> urlCredentials = credentialsFromUrl(jdbcUrl);
+        if (hasEnvDatabaseUrl(environment) && urlCredentials.isPresent()) {
+            return urlCredentials.get().username();
+        }
+
         String configured = environment.getProperty("DB_USERNAME");
         if (!isBlank(configured)) {
             return configured.trim();
         }
-        return credentialsFromUrl(jdbcUrl)
+        return urlCredentials
                 .map(Credentials::username)
                 .orElseGet(() -> environment.getProperty("spring.datasource.username", "wedding_chat"));
     }
 
     public static String resolvePassword(Environment environment, String jdbcUrl) {
+        Optional<Credentials> urlCredentials = credentialsFromUrl(jdbcUrl);
+        if (hasEnvDatabaseUrl(environment) && urlCredentials.isPresent()) {
+            return urlCredentials.get().password();
+        }
+
         String configured = environment.getProperty("DB_PASSWORD");
         if (!isBlank(configured)) {
             return configured;
         }
-        return credentialsFromUrl(jdbcUrl)
+        return urlCredentials
                 .map(Credentials::password)
                 .orElseGet(() -> environment.getProperty("spring.datasource.password", "wedding_chat"));
     }
@@ -101,6 +111,13 @@ public final class DatabaseUrlSupport {
 
     private static String decode(String value) {
         return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
+    private static boolean hasEnvDatabaseUrl(Environment environment) {
+        return firstNonBlank(
+                environment.getProperty("DB_URL"),
+                environment.getProperty("DATABASE_URL")
+        ) != null;
     }
 
     private static String firstNonBlank(String... values) {
